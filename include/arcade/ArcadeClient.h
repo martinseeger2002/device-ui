@@ -119,6 +119,9 @@ class ArcadeClient
     };
     std::vector<QueuedPay> payQueue;
     std::string payQueueError;       // why the last waiting payment did not go
+    uint64_t waitingOut(const std::string &network) const;   // what queued payments will take from a wallet
+    uint64_t available(size_t chain) const;                  // the balance less what is waiting to go
+    bool cancelQueued(size_t index);                         // take a waiting payment back
 
     // ---- messages ----
     static constexpr size_t MAIL_MAX = 645;                          // sealed bytes the gateway carries (3 frames)

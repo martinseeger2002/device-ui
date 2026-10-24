@@ -225,7 +225,7 @@ std::string ArcadeScreens::signature(void) const
     }
     for (auto &c : client.chains)
         s += c.network + std::to_string(c.confirmed) + "/" + std::to_string(c.pending);
-    s += std::to_string(client.payQueue.size()) + std::to_string((int)client.send.state) + client.payQueueError;
+    s += std::to_string(client.payQueue.size()) + std::to_string((int)client.send.state) + client.payQueueError + walletNote;
     s += std::to_string(client.contacts.size()) + std::to_string(client.activity.size());
     return s;
 }
@@ -989,13 +989,17 @@ void ArcadeScreens::scrWallet(lv_obj_t *p)
         text(top, ch.coinName(), &arcade_roboto_medium_12, skin->fg);
         if (!ch.mainnet)
             chip(top, "testnet", skin->warn);
-        text(mid, ch.pending ? "+" + formatAmount(ch.pending) + " on its way" : std::string("confirmed"), &arcade_roboto_10,
-             skin->muted);
+        uint64_t waiting = client.waitingOut(ch.network);
+        if (waiting)
+            text(mid, "\xE2\x88\x92" + formatAmount(waiting) + " waiting for a gateway", &arcade_roboto_10, skin->warn);
+        else
+            text(mid, ch.pending ? "+" + formatAmount(ch.pending) + " on its way" : std::string("confirmed"), &arcade_roboto_10,
+                 skin->muted);
         lv_obj_t *right = box(c);
         lv_obj_set_width(right, LV_SIZE_CONTENT);
         lv_obj_set_flex_align(right, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END);
         lv_obj_set_style_pad_gap(right, 0, 0);
-        text(right, formatAmount(ch.confirmed), &arcade_mono_12, skin->fg);
+        text(right, formatAmount(client.available(i)), &arcade_mono_12, skin->fg);
         text(right, ch.symbol(), &arcade_roboto_10, skin->muted);
         size_t idx = i;
         focusable(c, [this, idx]() {
@@ -1005,10 +1009,46 @@ void ArcadeScreens::scrWallet(lv_obj_t *p)
         });
     }
     if (!client.payQueue.empty()) {
-        lv_obj_t *q = text(p, std::to_string(client.payQueue.size()) +
-                                  (client.payQueue.size() == 1 ? " payment waits" : " payments wait") + " for a gateway",
-                           &arcade_roboto_10, skin->warn);
-        (void)q;
+        lv_obj_t *s = text(p, "WAITING FOR A GATEWAY", &arcade_roboto_10, skin->warn);
+        lv_obj_set_style_text_letter_space(s, 1, 0);
+        lv_obj_t *c = card(p);
+        lv_obj_set_style_pad_ver(c, 2, 0);
+        for (size_t i = 0; i < client.payQueue.size(); i++) {
+            const auto &q = client.payQueue[i];
+            std::string sym = "PEP";
+            for (auto &ch : client.chains)
+                if (ch.network == q.network)
+                    sym = ch.symbol();
+            lv_obj_t *row = box(c, true);
+            lv_obj_set_style_pad_ver(row, 3, 0);
+            lv_obj_set_style_radius(row, 5, 0);
+            lv_obj_t *who = text(row, "To " + q.to, &arcade_roboto_12, skin->fg);
+            lv_obj_set_flex_grow(who, 1);
+            lv_label_set_long_mode(who, LV_LABEL_LONG_DOT);
+            if (q.when > 1600000000) {
+                time_t t = q.when;
+                struct tm tmv;
+                localtime_r(&t, &tmv);
+                char b[12];
+                snprintf(b, sizeof(b), "%02d:%02d", tmv.tm_hour, tmv.tm_min);
+                text(row, b, &arcade_roboto_10, skin->muted);
+            }
+            text(row, "\xE2\x88\x92" + formatAmount(q.amount) + " " + sym, &arcade_mono_12, skin->warn);
+            focusable(row, [this]() {
+                walletNote = "Hold a waiting payment to cancel it.";
+                render();
+            });
+            actions.emplace_back(new Action([this, i]() {
+                walletNote = client.cancelQueued(i) ? "Cancelled." : "That one is with the gateway now and cannot be taken back.";
+                render();
+            }));
+            lv_obj_add_event_cb(row, onEvent, LV_EVENT_LONG_PRESSED, actions.back().get());
+        }
+        lv_obj_t *hint = text(p, walletNote.empty() ? std::string("They go as soon as a gateway answers. Hold one to cancel it.")
+                                                    : walletNote,
+                              &arcade_roboto_10, skin->muted);
+        lv_obj_set_width(hint, LV_PCT(100));
+        lv_label_set_long_mode(hint, LV_LABEL_LONG_WRAP);
     }
     if (client.send.state == ArcadeClient::SendState::Review) {
         lv_obj_t *rv = card(p);
@@ -1094,7 +1134,7 @@ void ArcadeScreens::scrSend(lv_obj_t *p)
         lv_obj_set_flex_flow(wallets, LV_FLEX_FLOW_ROW_WRAP);
         for (size_t i = 0; i < client.chains.size(); i++) {
             const Chain &w = client.chains[i];
-            std::string label = w.coinName() + (w.mainnet ? "" : " test") + " \xC2\xB7 " + formatAmount(w.confirmed);
+            std::string label = w.coinName() + (w.mainnet ? "" : " test") + " \xC2\xB7 " + formatAmount(client.available(i));
             pill(wallets, label, i == sendChain, [this, i]() {
                 sendChain = i;
                 render();
@@ -1148,7 +1188,8 @@ void ArcadeScreens::scrSend(lv_obj_t *p)
                 focusable(row, [pick, tg]() { pick(tg); });
             }
         char avail[64];
-        snprintf(avail, sizeof(avail), "AMOUNT \xC2\xB7 %s %s AVAILABLE", formatAmount(ch.confirmed).c_str(), ch.symbol().c_str());
+        snprintf(avail, sizeof(avail), "AMOUNT \xC2\xB7 %s %s AVAILABLE", formatAmount(client.available(sendChain)).c_str(),
+                 ch.symbol().c_str());
         text(p, avail, &arcade_roboto_10, skin->muted);
         lv_obj_t *amountField = input(p, sendAmount, "0.00", "0123456789.", 18);
         lv_obj_t *r = box(p, true);
@@ -1592,7 +1633,9 @@ void ArcadeScreens::scrChat(lv_obj_t *p)
         }
         if (l.mine)
             meta += std::string(meta.empty() ? "" : " \xC2\xB7 ") +
-                    (l.state == Letter::Sending ? "sending\xE2\x80\xA6" : l.state == Letter::Sent ? "sent" : "not sent: " + l.why);
+                    (l.state == Letter::Sending
+                         ? (client.link == ArcadeClient::Link::Online ? "sending\xE2\x80\xA6" : "waiting for a gateway")
+                         : l.state == Letter::Sent ? "sent" : "not sent: " + l.why);
         if (l.mine && l.state == Letter::Failed)
             meta += " \xC2\xB7 hold to send again";
         if (!meta.empty()) {

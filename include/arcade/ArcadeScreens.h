@@ -126,6 +126,7 @@ class ArcadeScreens
     std::string contactTag;
     bool wifiFocusPassword = false;
     bool focusAmount = false;
+    std::string walletNote;
 
     Radio *radio = nullptr;
     RadioState radioState;

@@ -138,6 +138,8 @@ bool ArcadeClient::unlock(const std::string &pin)
     account = std::make_shared<Account>(phrase);
     wipe(&phrase[0], phrase.size());
     loadState();
+    for (auto &c : contacts)
+        thread(c.tag); // letters that were waiting when the T-Deck went off queue again
     link = Link::Searching;
     status = "Looking for a gateway";
     if (gateway) {
@@ -161,6 +163,10 @@ void ArcadeClient::lock(void)
     chains.clear();
     pending.clear();
     send.state = SendState::Idle;
+    // letters reload (and waiting ones queue again) from flash on unlock
+    threads.clear();
+    mailQueue.clear();
+    mailInFlight = signingMail = false;
     note();
 }
 
@@ -859,6 +865,36 @@ void ArcadeClient::removeContact(const std::string &t)
     note();
 }
 
+uint64_t ArcadeClient::waitingOut(const std::string &network) const
+{
+    uint64_t sum = 0;
+    for (auto &q : payQueue)
+        if (q.network == network)
+            sum += q.amount;
+    return sum;
+}
+
+uint64_t ArcadeClient::available(size_t chain) const
+{
+    if (chain >= chains.size())
+        return 0;
+    uint64_t out = waitingOut(chains[chain].network);
+    return chains[chain].confirmed > out ? chains[chain].confirmed - out : 0;
+}
+
+bool ArcadeClient::cancelQueued(size_t index)
+{
+    // not the one a gateway is working on right now: that one is out of our hands
+    if (index >= payQueue.size() || (index == 0 && fromQueue))
+        return false;
+    payQueue.erase(payQueue.begin() + index);
+    savePayQueue();
+    if (send.state == SendState::Queued && payQueue.empty())
+        send = {};
+    note();
+    return true;
+}
+
 void ArcadeClient::savePayQueue(void)
 {
     Writer w;
@@ -909,6 +945,12 @@ void ArcadeClient::askToSend(size_t chain, const std::string &to, uint64_t amoun
     if (chain >= chains.size()) {
         send.state = SendState::Failed;
         send.why = "Pick a wallet to send from";
+        return note();
+    }
+    bool balanceKnown = balancesAt || balancesWhen || !balancesFrom.empty();
+    if (balanceKnown && amount > available(chain)) {
+        send.state = SendState::Failed;
+        send.why = "More than this wallet has, counting payments still waiting for a gateway";
         return note();
     }
     if (link != Link::Online) {
@@ -1078,12 +1120,27 @@ std::vector<Letter> &ArcadeClient::thread(const std::string &tag)
                 t.push_back(l);
         }
     }
-    // a letter that was going out when the T-Deck went off did not go
-    for (auto &l : t)
-        if (l.state == Letter::Sending) {
+    // a letter still waiting when the T-Deck went off waits again: sealed
+    // afresh and queued for the next gateway
+    const Contact *c = nullptr;
+    for (auto &k : contacts)
+        if (k.tag == tag)
+            c = &k;
+    static const uint8_t zero[32] = {0};
+    for (size_t i = 0; i < t.size(); i++) {
+        Letter &l = t[i];
+        if (l.state != Letter::Sending)
+            continue;
+        Bytes sealed;
+        if (account && c && memcmp(c->key, zero, 32) != 0)
+            sealed = sealMessage(*account, c->key, l.text);
+        if (sealed.empty() || sealed.size() > MAIL_MAX) {
             l.state = Letter::Failed;
-            l.why = "The T-Deck restarted before it went";
+            l.why = "Could not be sealed again after a restart";
+            continue;
         }
+        mailQueue.push_back({tag, c->address, sealed, i});
+    }
     return t;
 }
 
