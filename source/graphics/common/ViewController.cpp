@@ -583,6 +583,16 @@ bool ViewController::send(uint32_t to, uint8_t ch, uint8_t hopLimit, uint32_t re
             .pki_encrypted = usePkc}});
 }
 
+bool ViewController::sendAppData(uint32_t to, uint8_t hopLimit, meshtastic_PortNum portnum, const uint8_t *bytes, size_t len,
+                                 bool usePkc)
+{
+    unsigned char buf[meshtastic_Constants_DATA_PAYLOAD_LEN] = {0};
+    if (len > sizeof(buf))
+        return false;
+    memcpy(buf, bytes, len);
+    return send(to, 0, hopLimit, 0, portnum, false, usePkc, buf, len);
+}
+
 bool ViewController::receive(void)
 {
     bool gotPacket = false;
@@ -1147,6 +1157,7 @@ bool ViewController::packetReceived(const meshtastic_MeshPacket &p)
         break;
     }
     case meshtastic_PortNum_SIMULATOR_APP:
+    case meshtastic_PortNum_PRIVATE_APP: // the view's own app traffic (arcade frames)
         break;
     default:
         ILOG_ERROR("unhandled meshpacket portnum: %u", p.decoded.portnum);

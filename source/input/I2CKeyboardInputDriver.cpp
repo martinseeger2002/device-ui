@@ -87,7 +87,9 @@ void TDeckKeyboardInputDriver::readKeyboard(uint8_t address, lv_indev_t *indev, 
         // ignore empty reads and keycode 224(E0, shift-0 on T-Deck) which causes internal issues
         if (keyValue != (char)0x00 && keyValue != (char)0xE0) {
             data->state = LV_INDEV_STATE_PRESSED;
+            #ifndef VIEW_ARCADE // the arcade T-Deck types its twelve words on this keyboard: never log keys
             ILOG_DEBUG("key press value: %d", (int)keyValue);
+#endif
 
             switch (keyValue) {
             case 0x0D:
@@ -188,7 +190,9 @@ void BBQ10KeyboardInputDriver::readKeyboard(uint8_t address, lv_indev_t *indev, 
         // ignore empty reads and keycode 224(E0, shift-0 on T-Deck) which causes internal issues
         if (keyValue != (char)0x00 && keyValue != (char)0xE0) {
             data->state = LV_INDEV_STATE_PRESSED;
+            #ifndef VIEW_ARCADE // the arcade T-Deck types its twelve words on this keyboard: never log keys
             ILOG_DEBUG("key press value: %d", (int)keyValue);
+#endif
 
             switch (keyValue) {
             case 0x0D:
@@ -220,7 +224,9 @@ void CardKBInputDriver::readKeyboard(uint8_t address, lv_indev_t *indev, lv_inde
         // ignore empty reads and keycode 224 which causes internal issues
         if (keyValue != (char)0x00 && keyValue != (char)0xE0) {
             data->state = LV_INDEV_STATE_PRESSED;
+            #ifndef VIEW_ARCADE // the arcade T-Deck types its twelve words on this keyboard: never log keys
             ILOG_DEBUG("key press value: %d", (int)keyValue);
+#endif
 
             switch (keyValue) {
             case 0x0D:

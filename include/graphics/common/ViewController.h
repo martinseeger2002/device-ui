@@ -80,6 +80,9 @@ class ViewController
 
     void setConfigRequested(bool required);
 
+    // an app's raw bytes on its own port (the arcade's PRIVATE_APP frames)
+    bool sendAppData(uint32_t to, uint8_t hopLimit, meshtastic_PortNum portnum, const uint8_t *bytes, size_t len, bool usePkc);
+
   protected:
     // generic send method to send a (decoded) payload in a meshpacket to radio
     virtual bool send(uint32_t to, meshtastic_PortNum portnum, const meshtastic_Data_payload_t &payload, bool wantRsp = false);

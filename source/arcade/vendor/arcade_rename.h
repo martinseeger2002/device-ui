@@ -1,0 +1,84 @@
+#pragma once
+
+// micro-ecc: only the coins' curve. The ESP32 Bluetooth stack carries its own
+// micro-ecc (uECC_secp256r1 and friends), so ours must define nothing it does.
+#define uECC_SUPPORTS_secp160r1 0
+#define uECC_SUPPORTS_secp192r1 0
+#define uECC_SUPPORTS_secp224r1 0
+#define uECC_SUPPORTS_secp256r1 0
+#define uECC_SUPPORTS_secp256k1 1
+// Every vendored function gets an arcade_ prefix so nothing collides with
+// the ESP32 core's own crypto (wpa_supplicant has its own hmac_sha256).
+
+#define hmac_sha256 arcade_hmac_sha256
+#define hmac_sha256_Final arcade_hmac_sha256_Final
+#define hmac_sha256_Init arcade_hmac_sha256_Init
+#define hmac_sha256_prepare arcade_hmac_sha256_prepare
+#define hmac_sha256_Update arcade_hmac_sha256_Update
+#define hmac_sha512 arcade_hmac_sha512
+#define hmac_sha512_Final arcade_hmac_sha512_Final
+#define hmac_sha512_Init arcade_hmac_sha512_Init
+#define hmac_sha512_prepare arcade_hmac_sha512_prepare
+#define hmac_sha512_Update arcade_hmac_sha512_Update
+#define memzero arcade_memzero
+#define pbkdf2_hmac_sha256 arcade_pbkdf2_hmac_sha256
+#define pbkdf2_hmac_sha256_Final arcade_pbkdf2_hmac_sha256_Final
+#define pbkdf2_hmac_sha256_Init arcade_pbkdf2_hmac_sha256_Init
+#define pbkdf2_hmac_sha256_Update arcade_pbkdf2_hmac_sha256_Update
+#define pbkdf2_hmac_sha512 arcade_pbkdf2_hmac_sha512
+#define pbkdf2_hmac_sha512_Final arcade_pbkdf2_hmac_sha512_Final
+#define pbkdf2_hmac_sha512_Init arcade_pbkdf2_hmac_sha512_Init
+#define pbkdf2_hmac_sha512_Update arcade_pbkdf2_hmac_sha512_Update
+#define ripemd160 arcade_ripemd160
+#define ripemd160_done arcade_ripemd160_done
+#define ripemd160_init arcade_ripemd160_init
+#define ripemd160_process arcade_ripemd160_process
+#define sha1_Data arcade_sha1_Data
+#define sha1_End arcade_sha1_End
+#define sha1_Final arcade_sha1_Final
+#define sha1_Init arcade_sha1_Init
+#define sha1_initial_hash_value arcade_sha1_initial_hash_value
+#define sha1_Raw arcade_sha1_Raw
+#define sha1_Transform arcade_sha1_Transform
+#define sha1_Update arcade_sha1_Update
+#define sha256_Data arcade_sha256_Data
+#define sha256_End arcade_sha256_End
+#define sha256_Final arcade_sha256_Final
+#define sha256_Init arcade_sha256_Init
+#define sha256_Init_ex arcade_sha256_Init_ex
+#define sha256_initial_hash_value arcade_sha256_initial_hash_value
+#define sha256_Raw arcade_sha256_Raw
+#define sha256_Transform arcade_sha256_Transform
+#define sha256_Update arcade_sha256_Update
+#define sha384_initial_hash_value arcade_sha384_initial_hash_value
+#define sha384_Raw arcade_sha384_Raw
+#define sha512_Data arcade_sha512_Data
+#define sha512_End arcade_sha512_End
+#define sha512_Final arcade_sha512_Final
+#define sha512_Init arcade_sha512_Init
+#define sha512_initial_hash_value arcade_sha512_initial_hash_value
+#define sha512_Raw arcade_sha512_Raw
+#define sha512_Transform arcade_sha512_Transform
+#define sha512_Update arcade_sha512_Update
+#define uECC_compress arcade_uECC_compress
+#define uECC_compute_public_key arcade_uECC_compute_public_key
+#define uECC_curve_private_key_size arcade_uECC_curve_private_key_size
+#define uECC_curve_public_key_size arcade_uECC_curve_public_key_size
+#define uECC_decompress arcade_uECC_decompress
+#define uECC_get_rng arcade_uECC_get_rng
+#define uECC_make_key arcade_uECC_make_key
+#define uECC_secp256k1 arcade_uECC_secp256k1
+#define uECC_set_rng arcade_uECC_set_rng
+#define uECC_shared_secret arcade_uECC_shared_secret
+#define uECC_sign arcade_uECC_sign
+#define uECC_sign_deterministic arcade_uECC_sign_deterministic
+#define uECC_sign_with_k arcade_uECC_sign_with_k
+#define uECC_valid_public_key arcade_uECC_valid_public_key
+#define uECC_verify arcade_uECC_verify
+#define blake2b arcade_blake2b
+#define blake2b_Init arcade_blake2b_Init
+#define blake2b_InitKey arcade_blake2b_InitKey
+#define blake2b_InitPersonal arcade_blake2b_InitPersonal
+#define blake2b_Update arcade_blake2b_Update
+#define blake2b_Final arcade_blake2b_Final
+#define blake2b_Key arcade_blake2b_Key

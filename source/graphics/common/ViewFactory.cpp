@@ -14,6 +14,9 @@
 #if defined(VIEW_480x222) || defined(ARCH_PORTDUINO)
 #include "graphics/view/TFT/TFTView_480x222.h"
 #endif
+#if defined(VIEW_ARCADE)
+#include "graphics/view/TFT/ArcadeView.h"
+#endif
 #include "util/ILog.h"
 #include <assert.h>
 
@@ -26,7 +29,9 @@ ViewFactory::ViewFactory(void) {}
  */
 DeviceGUI *ViewFactory::create(void)
 {
-#if defined(VIEW_128x64)
+#if defined(VIEW_ARCADE)
+    return ArcadeView::instance();
+#elif defined(VIEW_128x64)
     return OLEDView_128x64::instance();
 #elif defined(VIEW_160x80)
     return TFTView_160x80::instance();
@@ -50,6 +55,9 @@ DeviceGUI *ViewFactory::create(void)
  */
 DeviceGUI *ViewFactory::create(const DisplayDriverConfig &cfg)
 {
+#if defined(VIEW_ARCADE)
+    return ArcadeView::instance(cfg);
+#endif
 #if defined(VIEW_128x64)
     if (cfg.width() == 128 && cfg.height() == 64) {
         return OLEDView_128x64::instance(cfg);
